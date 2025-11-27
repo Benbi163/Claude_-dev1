@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBÜ Not Hesaplama (Basit)</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f0f0f0; }
+        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input, select, button { width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #sonucAlani { margin-top: 15px; padding: 10px; border: 1px solid #ccc; min-height: 50px; }
+        .hata { color: red; font-weight: bold; }
+        .basarili { color: rgb(128, 0, 0); font-weight: bold; }
+        .kaldi { color: rgb(255, 115, 0); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>KBÜ Not Hesaplama 🚀</h1>
+
+        <label for="araSinav">Ara Sınav Notu (40%):</label>
+        <input type="number" id="araSinav" min="0" max="100" placeholder="0-100 arası">
+
+        <label for="yariYilSonu">Yarıyıl Sonu Notu (60%):</label>
+        <input type="number" id="yariYilSonu" min="0" max="100" placeholder="0-100 arası">
+
+        <label for="devamDurumu">Devam Durumu:</label>
+        <select id="devamDurumu">
+            <option value="devamEtti">Devam Etti</option>
+            <option value="devamsiz">Devamsız (F1)</option>
+        </select>
+
+        <button onclick="notHesapla()">Notu Hesapla</button>
+
+        <div id="sonucAlani">
+            </div>
+    </div>
+
+    <script>
+        // Fonksiyon, butona tıklandığında çalışır
+        function notHesapla() {
+            // 1. Girdileri al ve sayıya çevir (parseInt)
+            const araSinav = parseInt(document.getElementById('araSinav').value);
+            const yariYilSonu = parseInt(document.getElementById('yariYilSonu').value);
+            const devamDurumu = document.getElementById('devamDurumu').value;
+            const sonucAlani = document.getElementById('sonucAlani');
+            
+            // Sonuç alanını temizle
+            sonucAlani.innerHTML = ''; 
+
+            // 2. Basit Hata/Doğrulama Kontrolleri
+
+            // a) Devamsızlık Kontrolü (F1)
+            if (devamDurumu === 'devamsiz') {
+                sonucAlani.innerHTML = '<p class="kaldi">Durum: BAŞARISIZ</p><p>Harf Notu: <span class="kaldi">F1</span> (Devamsızlık)</p>';
+                return; // Fonksiyonu burada durdur
+            }
+
+            // b) Notların Geçerlilik Kontrolü
+            if (isNaN(araSinav) || isNaN(yariYilSonu) || araSinav < 0 || araSinav > 100 || yariYilSonu < 0 || yariYilSonu > 100) {
+                // DOM Güncelleme (Hata Mesajı)
+                sonucAlani.innerHTML = '<p class="hata">⚠ Hata: Lütfen geçerli, 0-100 arası notları girin.</p>';
+                return; // Fonksiyonu burada durdur
+            }
+
+            // 3. Koşullu Mantık ve Hesaplama
+
+            // c) Yarıyıl Sonu Sınav Limiti Kontrolü (F3)
+            if (yariYilSonu < 50) {
+                 sonucAlani.innerHTML = '<p class="kaldi">Durum: BAŞARISIZ</p><p>Harf Notu: <span class="kaldi">F3</span> (Yarıyıl Sonu Notu 50\'nin Altında)</p>';
+                 return;
+            }
+
+            // Ham Başarı Notu (HBN) Hesaplama
+            const hbn = (araSinav * 0.40) + (yariYilSonu * 0.60);
+            const yuvarlanmisHbn = Math.round(hbn);
+            let harfNotu = "";
+            let durumText = "";
+
+            // Harf Notu Belirleme (KBÜ Basit Aralıklar)
+            if (yuvarlanmisHbn >= 90) {
+                harfNotu = "A1"; 
+                durumText = "✅ BAŞARILI";
+            } else if (yuvarlanmisHbn >= 75) {
+                harfNotu = "B1";
+                durumText = "✅ BAŞARILI";
+            } else if (yuvarlanmisHbn >= 65) {
+                harfNotu = "B2";
+                durumText = "✅ BAŞARILI";
+            } else if (yuvarlanmisHbn >= 50) {
+                // KBÜ'de GANO 2.00 altında ise bu notlar bile F3'e dönüşebilir. Basitlik için C olarak bırakalım.
+                harfNotu = "C"; 
+                durumText = "🟡 KOŞULLU BAŞARILI (GANO kontrolü gerekir)";
+            } else {
+                // HBN < 50 ise F3 (HBN 50-60 arası F2 veya C olabilir, en katı kuralı uygulayalım)
+                harfNotu = "F3"; 
+                durumText = "🔴 BAŞARISIZ";
+            }
+            
+            // F2 kontrolü (Sınava girmediyse, notu 0'dır, devamsız değilse)
+            if (yariYilSonu === 0 && devamDurumu === 'devamEtti') {
+                 harfNotu = "F2";
+                 durumText = "🔴 BAŞARISIZ (Sınava Girmedi)";
+            }
+            
+            // Harf notu sınıfı
+            const durumSinifi = (harfNotu.startsWith("A") || harfNotu.startsWith("B")) ? "basarili" : "kaldi";
+            if (harfNotu === "C") {
+                // Koşullu başarı için ayrı bir sınıf kullanılabilir
+            }
+
+            // 4. Sonuçları DOM'a Yazma (DOM Güncelleme)
+            sonucAlani.innerHTML = `
+                <p>Durum: <span class="${durumSinifi}">${durumText}</span></p>
+                <hr>
+                <p>Hesaplanan Başarı Notu: <strong>${yuvarlanmisHbn}</strong></p>
+                <p>Harf Notu: <span class="${durumSinifi}"><strong>${harfNotu}</strong></span></p>
+            `;
+        }
+    </script>
+</body>
+</html>
